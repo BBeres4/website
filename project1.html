@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App (Fahrenheit)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #e0f7fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            transition: background 0.5s;
+        }
+        h1 { color: #00796b; }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #00796b;
+            outline: none;
+        }
+        button {
+            background-color: #00796b;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background-color: #004d40; }
+        .weather-box, .forecast-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 250px;
+        }
+        .weather-box img, .forecast-day img { width: 80px; height: 80px; }
+        .forecast-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        .forecast-day {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 5px;
+            width: 100px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Weather App</h1>
+<input type="text" id="cityInput" placeholder="Enter city, state, country">
+<button onclick="getWeather()">Get Weather</button>
+
+<div class="weather-box" id="weatherBox" style="display: none;">
+    <h2 id="cityName"></h2>
+    <img id="weatherIcon" src="" alt="Weather Icon">
+    <p id="temp"></p>
+    <p id="condition"></p>
+    <p id="humidity"></p>
+</div>
+
+<div class="forecast-box" id="forecastBox" style="display: none;">
+    <h2>5-Day Forecast</h2>
+    <div class="forecast-container" id="forecastContainer"></div>
+</div>
+
+<script>
+    const apiKey = '840b860c0bbf5431c7d938af38dbf557'; // Your API key here
+
+    async function getWeather() {
+        const location = document.getElementById('cityInput').value.trim();
+        if (!location) return alert("Please enter a city, state, or country.");
+
+        // Current weather (imperial = Fahrenheit)
+        const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&units=imperial&appid=${apiKey}`;
+        const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(location)}&units=imperial&appid=${apiKey}`;
+
+        try {
+            // Fetch current weather
+            const response = await fetch(weatherUrl);
+            if (!response.ok) throw new Error("City not found or API key invalid.");
+            const data = await response.json();
+
+            document.getElementById('cityName').textContent = `${data.name}, ${data.sys.country}`;
+            document.getElementById('temp').textContent = `Temperature: ${Math.round(data.main.temp)}°F`;
+            document.getElementById('condition').textContent = `Condition: ${data.weather[0].description}`;
+            document.getElementById('humidity').textContent = `Humidity: ${data.main.humidity}%`;
+            document.getElementById('weatherIcon').src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+            document.getElementById('weatherBox').style.display = 'block';
+
+            // Change background color based on weather
+            const weatherMain = data.weather[0].main.toLowerCase();
+            if (weatherMain.includes("cloud")) document.body.style.background = "#90a4ae";
+            else if (weatherMain.includes("rain")) document.body.style.background = "#607d8b";
+            else if (weatherMain.includes("clear")) document.body.style.background = "#e0f7fa";
+            else if (weatherMain.includes("snow")) document.body.style.background = "#e1f5fe";
+            else document.body.style.background = "#b2dfdb";
+
+            // Fetch 5-day forecast
+            const forecastResponse = await fetch(forecastUrl);
+            if (!forecastResponse.ok) throw new Error("Forecast not found.");
+            const forecastData = await forecastResponse.json();
+
+            const forecastContainer = document.getElementById('forecastContainer');
+            forecastContainer.innerHTML = '';
+
+            const dailyForecasts = forecastData.list.filter(item => item.dt_txt.includes("12:00:00"));
+
+            dailyForecasts.forEach(day => {
+                const div = document.createElement('div');
+                div.classList.add('forecast-day');
+                const date = new Date(day.dt_txt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                div.innerHTML = `
+                    <p>${date}</p>
+                    <img src="https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png" alt="icon">
+                    <p>${Math.round(day.main.temp)}°F</p>
+                    <p>${day.weather[0].main}</p>
+                `;
+                forecastContainer.appendChild(div);
+            });
+
+            document.getElementById('forecastBox').style.display = 'block';
+
+        } catch (error) {
+            alert("Error: " + error.message);
+        }
+    }
+</script>
+
+</body>
+</html>
